@@ -1,0 +1,169 @@
+import os
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+from rcon.maps import parse_layer
+from rcon.models import Maps, enter_session
+from rcon.user_config.rcon_server_settings import RconServerSettingsUserConfig
+from rcon.utils import get_server_number
+from rconweb.settings import TAG_VERSION
+
+from .decorators import require_http_methods
+
+
+def api_response(*, result=None, command: str, failed: bool, error=None, arguments=None, status_code=200):
+    return JsonResponse(
+        {
+            "result": result,
+            "command": command,
+            "arguments": arguments,
+            "failed": failed,
+            "error": error,
+            "forwards_results": None,
+            "version": TAG_VERSION,
+        },
+        status=status_code,
+    )
+
+
+def _get_data(request):
+    parsed_get = {}
+    for key in request.GET.keys():
+        values = request.GET.getlist(key)
+        parsed_get[key] = values[0] if len(values) == 1 else values
+    return parsed_get
+
+
+def _get_latest_map(server_number: int | str | None):
+    with enter_session() as sess:
+        query = sess.query(Maps).order_by(Maps.start.desc())
+        if server_number is not None:
+            query = query.filter(Maps.server_number == server_number)
+
+        latest_map = query.first()
+        if latest_map is not None or server_number is None:
+            return latest_map
+
+        return sess.query(Maps).order_by(Maps.start.desc()).first()
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_public_info(request):
+    config = RconServerSettingsUserConfig.load_from_db()
+    latest_map = _get_latest_map(get_server_number())
+    latest_layer = parse_layer(latest_map.map_name) if latest_map else None
+    latest_start = latest_map.start.timestamp() if latest_map else None
+    latest_result = latest_map.result if latest_map and latest_map.result else {}
+
+    public_stats_port = os.getenv("PUBLIC_STATS_PORT", None)
+    public_stats_port_https = os.getenv("PUBLIC_STATS_PORT_HTTPS", None)
+
+    return api_response(
+        result={
+            "current_map": {"map": latest_layer, "start": latest_start},
+            "next_map": {"map": latest_layer, "start": None},
+            "player_count": 0,
+            "max_player_count": 0,
+            "player_count_by_team": {"allied": 0, "axis": 0},
+            "score": {
+                "allied": latest_result.get("Allied", 0),
+                "axis": latest_result.get("Axis", 0),
+            },
+            "time_remaining": 0,
+            "vote_status": [],
+            "name": {
+                "name": config.short_name or f"CRCON Archive {get_server_number()}",
+                "short_name": config.short_name,
+                "public_stats_port": int(public_stats_port) if public_stats_port else None,
+                "public_stats_port_https": int(public_stats_port_https) if public_stats_port_https else None,
+            },
+        },
+        command="get_public_info",
+        failed=False,
+    )
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_scoreboard_maps(request):
+    data = _get_data(request)
+
+    page_size = min(int(data.get("limit", 100)), 1000)
+    page = max(1, int(data.get("page", 1)))
+    server_number = data.get("server_number", os.getenv("SERVER_NUMBER"))
+
+    with enter_session() as sess:
+        query = (
+            sess.query(Maps)
+            .filter(Maps.server_number == server_number)
+            .order_by(Maps.start.desc())
+        )
+        total = query.count()
+        rows = query.limit(page_size).offset((page - 1) * page_size).all()
+
+    maps = []
+    for row in rows:
+        payload = row.to_dict()
+        maps.append(
+            {
+                "map": parse_layer(payload["map_name"]),
+                "id": payload["id"],
+                "creation_time": payload["creation_time"],
+                "start": payload["start"],
+                "end": payload["end"],
+                "server_number": payload["server_number"],
+                "player_stats": payload["player_stats"],
+                "result": payload["result"],
+                "game_layout": payload["game_layout"],
+            }
+        )
+
+    return api_response(
+        result={
+            "page": page,
+            "page_size": page_size,
+            "total": total,
+            "maps": maps,
+        },
+        command="get_scoreboard_maps",
+        failed=False,
+    )
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_map_scoreboard(request):
+    data = _get_data(request)
+
+    try:
+        map_id = int(data.get("map_id", None))
+        with enter_session() as sess:
+            game = sess.query(Maps).filter(Maps.id == map_id).one_or_none()
+
+        if not game:
+            return api_response(
+                result=None,
+                arguments=data,
+                error="No map for this ID",
+                failed=True,
+                command="get_map_scoreboard",
+            )
+
+        payload = game.to_dict(with_stats=True)
+        payload["map"] = parse_layer(payload["map_name"])
+        return api_response(
+            result=payload,
+            arguments=data,
+            failed=False,
+            command="get_map_scoreboard",
+        )
+    except Exception as exc:
+        return api_response(
+            result=None,
+            arguments=data,
+            error=repr(exc),
+            failed=True,
+            command="get_map_scoreboard",
+        )

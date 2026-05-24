@@ -1,0 +1,16 @@
+db_data/
+logs/
+servicediscovery/
+redis_data/
+docker-templates/
+*.yml
+*.log
+*.pyc
+events/
+*.tar
+*.gz
+db_data_bu/
+config/
+
+rcongui_public/dist/
+rcongui_public/node_modules/

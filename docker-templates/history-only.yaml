@@ -1,0 +1,154 @@
+networks:
+  common:
+  public:
+
+services:
+  redis:
+    image: ${REDIS_IMAGE}
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
+      interval: 15s
+      timeout: 30s
+      retries: 5
+    volumes:
+      - ./redis_data:/data
+      - ./config:/usr/local/etc/redis
+    networks:
+      - common
+
+  postgres:
+    image: ${POSTGRES_IMAGE}
+    command: postgres -c max_connections=300
+    environment:
+      POSTGRES_PASSWORD: ${HLL_DB_PASSWORD}
+      POSTGRES_USER: ${HLL_DB_USER}
+      POSTGRES_DB: ${HLL_DB_NAME}
+      PGDATA: /data
+      HLL_DB_NAME: ${HLL_DB_NAME}
+      HLL_DB_USER: ${HLL_DB_USER}
+    restart: always
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "${HLL_DB_USER}", "-d", "${HLL_DB_NAME}" ]
+      interval: 15s
+      timeout: 30s
+      retries: 5
+      start_period: 80s
+    volumes:
+      - ./db_data:/data
+    networks:
+      - common
+
+  maintenance:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${BACKEND_DOCKER_REPOSITORY}:${TAGGED_VERSION}
+    environment:
+      HLL_MAINTENANCE_CONTAINER: true
+      HLL_DB_USER: ${HLL_DB_USER}
+      HLL_DB_PASSWORD: ${HLL_DB_PASSWORD}
+      HLL_DB_NAME: ${HLL_DB_NAME}
+      HLL_DB_HOST: ${HLL_DB_HOST}
+      HLL_DB_HOST_PORT: ${HLL_DB_HOST_PORT}
+      HLL_DB_URL: postgresql://${HLL_DB_USER}:${HLL_DB_PASSWORD}@${HLL_DB_HOST}:${HLL_DB_HOST_PORT}/${HLL_DB_NAME}
+      HLL_REDIS_URL: redis://${HLL_REDIS_HOST}:${HLL_REDIS_HOST_PORT}/${HLL_REDIS_DB}
+    command: maintenance
+    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "test -f /code/rconweb/maintenance-container-healthy" ]
+      start_period: 30s
+      interval: 15s
+      timeout: 30s
+      retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/logs/
+    networks:
+      - common
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${BACKEND_DOCKER_REPOSITORY}:${TAGGED_VERSION}
+    environment:
+      HISTORY_ONLY: "true"
+      LOGGING_LEVEL: "INFO"
+      LOGGING_PATH: /logs/
+      CONFIG_DIR: /config/
+      HLL_REDIS_HOST: ${HLL_REDIS_HOST}
+      HLL_REDIS_PORT: ${HLL_REDIS_HOST_PORT}
+      HLL_REDIS_URL: redis://${HLL_REDIS_HOST}:${HLL_REDIS_HOST_PORT}/${HLL_REDIS_DB}
+      HLL_DB_USER: ${HLL_DB_USER}
+      HLL_DB_PASSWORD: ${HLL_DB_PASSWORD}
+      HLL_DB_NAME: ${HLL_DB_NAME}
+      HLL_DB_HOST: ${HLL_DB_HOST}
+      HLL_DB_HOST_PORT: ${HLL_DB_HOST_PORT}
+      HLL_DB_URL: postgresql://${HLL_DB_USER}:${HLL_DB_PASSWORD}@${HLL_DB_HOST}:${HLL_DB_HOST_PORT}/${HLL_DB_NAME}
+      HLL_REDIS_DB: ${HLL_REDIS_DB}
+      SERVER_NUMBER: ${SERVER_NUMBER}
+      PUBLIC_STATS_PORT: ${PUBLIC_STATS_PORT}
+      PUBLIC_STATS_PORT_HTTPS: ${PUBLIC_STATS_PORT_HTTPS}
+      RCONWEB_API_SECRET: ${RCONWEB_API_SECRET}
+      NB_API_WORKERS: ${NB_API_WORKERS}
+      NB_API_THREADS: ${NB_API_THREADS}
+      RCONWEB_EXTERNAL_ADDRESS: ${RCONWEB_EXTERNAL_ADDRESS}
+      DONT_SEED_ADMIN_USER: ${DONT_SEED_ADMIN_USER}
+      SESSION_COOKIE_DOMAIN: ${SESSION_COOKIE_DOMAIN}
+      CSRF_COOKIE_DOMAIN: ${CSRF_COOKIE_DOMAIN}
+      SENTRY_DSN: ${SENTRY_DSN}
+    command: web
+    restart: on-failure
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "if [ -e /code/rconweb/gunicorn.pid ]; then echo 0; else echo 1; fi",
+        ]
+      start_period: 30s
+      interval: 15s
+      timeout: 30s
+      retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      maintenance:
+        condition: service_healthy
+    volumes:
+      - ./logs:/logs/
+      - ./servicediscovery:/servicediscovery
+      - ./static:/static/
+      - ./config:/config/
+    networks:
+      - common
+      - public
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile-frontend-history
+      args:
+        VITE_HISTORY_ONLY: "true"
+    image: ${FRONTEND_DOCKER_REPOSITORY}:${TAGGED_VERSION}-history
+    environment:
+      RCONWEB_EXTERNAL_ADDRESS: ${RCONWEB_EXTERNAL_ADDRESS}
+    restart: always
+    ports:
+      - ${PUBLIC_STATS_PORT}:81
+      - ${PUBLIC_STATS_PORT_HTTPS}:444
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - ./static:/static/
+      - ./certs:/certs/
+    networks:
+      - public

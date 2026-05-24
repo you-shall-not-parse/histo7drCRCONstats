@@ -1,0 +1,34 @@
+import os
+from logging import getLogger
+
+import django.db.utils
+from django.apps import AppConfig
+
+from rcon.cache_utils import invalidates
+
+logger = getLogger(__name__)
+
+
+class ApiConfig(AppConfig):
+    name = "api"
+
+    def ready(self):
+        if os.getenv("HISTORY_ONLY", "").strip().lower() in {"1", "true", "yes", "on"}:
+            return
+
+        from rcon.audit import set_registered_mods
+
+        # Can't import from rconweb.api until Django is ready
+        from .auth import get_moderators_accounts
+
+        # Invalidate the cache on start up because you can modify Django
+        # records while CRCON is offline (through the CLI, etc.)
+        with invalidates(get_moderators_accounts):
+            try:
+                # Register active admin accounts on startup for the ingame/online mods feature
+                set_registered_mods(get_moderators_accounts())
+
+            # This doesn't happen in production; only in the test environment
+            # when running github actions
+            except django.db.utils.ProgrammingError as e:
+                logger.exception(e)

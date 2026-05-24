@@ -1,0 +1,31 @@
+ARG buildImage=node:20-bookworm-slim
+
+FROM $buildImage AS publicbuild
+
+WORKDIR /code_public
+
+COPY rcongui_public/ .
+RUN npm ci
+COPY assets/images/ /code_public/public
+COPY assets/rcongui_public/ /code_public/public
+ARG VITE_HISTORY_ONLY=true
+ENV VITE_HISTORY_ONLY=$VITE_HISTORY_ONLY
+RUN npm run build
+RUN mv /code_public/dist /www_public
+
+FROM nginx:mainline-alpine
+
+RUN apk add --no-cache openssl
+COPY rcongui_public/nginx.conf /etc/nginx/conf.d/default.conf
+
+WORKDIR /var/www
+
+RUN mkdir /var/www_public/
+COPY --from=publicbuild /www_public /var/www_public/
+COPY --from=publicbuild /www_public /var/www/
+
+VOLUME /certs
+COPY rcongui_public/entrypoint.sh /code/entrypoint.sh
+RUN chmod +x /code/entrypoint.sh
+
+ENTRYPOINT [ "/code/entrypoint.sh" ]
