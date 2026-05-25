@@ -9,77 +9,57 @@ This workspace has been slimmed for an archive-only deployment where CRCON serve
 - Use [docker-templates/history-only.yaml](docker-templates/history-only.yaml) as the deployment entrypoint.
 - The backend runs with `HISTORY_ONLY=true` and serves public match data from PostgreSQL instead of live RCON.
 - The public frontend is built from [Dockerfile-frontend-history](Dockerfile-frontend-history) and lands on `/games` by default.
-- Redis is still required for the current Django/channels wiring, but supervisor, webhook, and the old admin/live deployment templates are not part of this path.
+- The history-only deployment no longer starts websocket/channels services, does not seed a Django admin user, and only serves the public historical API over gunicorn.
+- The active archive runtime now uses the archive-only `archive_core` package instead of importing the old `rcon` package.
+- The legacy live-server `rcon` package, supervisor jobs, and related test suite are no longer part of the archive deployment path.
+- The default reverse-proxy target is `7drstats.hllfrontline.com`, with the frontend bound to `127.0.0.1` so Caddy can front it safely.
+- The remaining frontend surface is the historical match site only; the old live current-game and streamer views are no longer part of this repo.
 
-Minimal deployment flow:
+## Caddy Subdomain
 
-```bash
-docker compose -f docker-templates/history-only.yaml up -d --build
+To serve the archive on `7drstats.hllfrontline.com`, point your reverse proxy at the frontend port from [default.env](default.env).
+
+Example Caddy block:
+
+```caddyfile
+www.7drstats.hllfrontline.com {
+	redir https://7drstats.hllfrontline.com{uri} permanent
+}
+
+7drstats.hllfrontline.com {
+	encode zstd gzip
+
+	log {
+		output file /var/log/caddy/7drstats.access.log {
+			roll_size 10MiB
+			roll_keep 10
+			roll_keep_for 720h
+		}
+		format console
+	}
+
+	reverse_proxy 127.0.0.1:7010
+}
 ```
 
-![Website](https://img.shields.io/website?down_color=red&up_color=orange&up_message=hllrcon.app&url=https%3A%2F%2Fhllrcon.app)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-![Contributors](https://img.shields.io/github/contributors-anon/marechj/hll_rcon_tool)
-![Discord](https://img.shields.io/discord/685692524442026020?color=%237289da&label=discord)  
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/marechj/hll_rcon_tool)
-![Docker Cloud Automated build](https://img.shields.io/docker/automated/cericmathey/hll_rcon_tool)
-![Docker Cloud Build Status](https://img.shields.io/docker/image-size/cericmathey/hll_rcon_tool)
-![Docker Pulls](https://img.shields.io/docker/pulls/cericmathey/hll_rcon_tool)
+## Historical Data Import
 
-![Live view](images/README_Views_Live_2024-12-27.png)
+This site does not read a standalone stats file from a watched folder. Historical matches are read directly from PostgreSQL using `HLL_DB_URL`.
 
-## Documentation
+- If you receive a PostgreSQL dump (`.sql`, `.dump`, or `pg_dump` output), restore it into the database configured by `HLL_DB_NAME`, `HLL_DB_USER`, `HLL_DB_HOST`, and `HLL_DB_HOST_PORT`.
+- In the Docker template, that target is the `postgres` service defined in [docker-templates/history-only.yaml](docker-templates/history-only.yaml).
+- The minimum tables needed for the match list and match detail pages are `map_history`, `player_stats`, and `steam_id_64`.
+- If you also want Steam profile and ban metadata to appear on player rows, restore `steam_info` as well.
+- If the source arrives as CSV or JSON instead of a PostgreSQL dump, it still has to be imported into those PostgreSQL tables. There is no runtime file drop location for raw match data.
 
-<table>
-  <tbody>
-    <tr>
-      <th>Getting started</th>
-      <th>User guide</th>
-      <th>For the devs</th>
-      <th>Help</th>
-    </tr>
-    <tr>
-      <td valign="top" nowrap>
-        ● <a href="https://github.com/MarechJ/hll_rcon_tool/wiki/Getting-Started-%E2%80%90-Presentation-and-features">Presentation and features</a><br />
-        ● <a href="https://github.com/MarechJ/hll_rcon_tool/wiki/Getting-Started-%E2%80%90-Requirements">Requirements</a><br />
-        ● <a href="https://github.com/MarechJ/hll_rcon_tool/wiki/Getting-Started-%E2%80%90-Installation#installing-crcon">Installation</a>
-      </td>
-      <td valign="top" nowrap>
-        ● <a href="https://github.com/MarechJ/hll_rcon_tool/wiki/User-Guide-%E2%80%90-main-interface-%E2%80%90-Home">Main interface</a><br />
-        ● <a href="https://github.com/MarechJ/hll_rcon_tool/wiki/User-Guide-%E2%80%90-Admin-panel">Admin panel</a>
-      </td>
-      <td valign="top" nowrap>
-        ● <a href="https://github.com/MarechJ/hll_rcon_tool/wiki/Developer-Guides-%E2%80%90-Overview---Project-Structure">Overview Project Structure</a><br />
-        ● <a href="https://github.com/MarechJ/hll_rcon_tool/wiki/Developer-Guides-%E2%80%90-Development-environment">Development environment</a><br />
-        ● <a href="https://github.com/MarechJ/hll_rcon_tool/wiki/Developer-Guides-%E2%80%90-CRCON-API">CRCON API</a>
-      </td>
-      <td valign="top" nowrap>
-        ● <a href="https://github.com/MarechJ/hll_rcon_tool/wiki/Troubleshooting-&-Help-%E2%80%90-Need-help-%3F-%E2%80%90-Common-issues-and-their-solutions">Common issues</a><br />
-        ● <a href="https://github.com/MarechJ/hll_rcon_tool/wiki/Troubleshooting-&-Help-%E2%80%90-Need-help-%3F-%E2%80%90-Report-an-issue">Report an issue</a>
-      </td>
-    </tr>
-  </tbody>
-</table>
+Examples:
 
-## Join us on Discord
+```bash
+docker compose -f docker-templates/history-only.yaml exec -T postgres \
+	psql -U "$HLL_DB_USER" -d "$HLL_DB_NAME" < historical-matches.sql
+```
 
-🆘 If you're having an issue installing or using CRCON, [please read this](https://github.com/MarechJ/hll_rcon_tool/wiki/Troubleshooting-&-Help-%E2%80%90-Need-help-%3F-%E2%80%90-Report-an-issue) before asking for help on Discord.
-
-For feedback, troubleshooting and information about updates and general Hell Let Loose hosting info :  
-<https://discord.gg/hRS2tKH>
-
-## Support and contribute
-
-Feel free to support and contribute to CRCON's development !  
-The money will be used to reward developers and people who create video tutorials, demos, documentation, etc.  
-
-| Paypal | Ko-fi |
-| --- | --- |
-| [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate?hosted_button_id=56MYGQ2966V7J) | [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/T6T83KY8H) |
-
-You're an SQL wizard ? Dreaming in Python ? Eating frontends at breakfast ?  
-- Any code contribution to the main branch (or external tools) will be greatly appreciated !
-
-No coding skills ?
-- You can help to enhance this [Wiki](https://github.com/MarechJ/hll_rcon_tool/wiki/) or produce video tutorials !  
-- Translations are also very welcome : there are many people with no or limited English who use CRCON.
+```bash
+docker compose -f docker-templates/history-only.yaml exec -T postgres \
+	pg_restore -U "$HLL_DB_USER" -d "$HLL_DB_NAME" /backups/historical-matches.dump
+```

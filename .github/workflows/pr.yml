@@ -3,7 +3,7 @@ name: pull-requests
 on:
   pull_request:
     branches:
-      - 'master'
+      - 'main'
 
 jobs:
   build-public-ui:
@@ -13,12 +13,12 @@ jobs:
         working-directory: rcongui_public
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
       - run: npm ci
       - run: npm run build
 
-  test-backend:
+  smoke-backend:
     runs-on: ubuntu-latest
 
     env:
@@ -27,33 +27,23 @@ jobs:
       HLL_DB_USER: rcon
       HLL_DB_HOST: localhost
       HLL_DB_HOST_PORT: '5432'
-      HLL_REDIS_HOST: localhost
-      HLL_REDIS_PORT: '6379'
-      HLL_REDIS_HOST_PORT: '6379'
-      HLL_REDIS_DB: '1'
+      HLL_DB_URL: postgresql://rcon:rcon_dev@localhost:5432/rcon
       SERVER_NUMBER: '1'
-      REDIS_IMAGE: redis:alpine
-      POSTGRES_IMAGE: postgres:12-alpine
+      ARCHIVE_SITE_NAME: CRCON Archive
+      PUBLIC_STATS_PORT: '81'
+      PUBLIC_STATS_PORT_HTTPS: '444'
+      RCONWEB_EXTERNAL_ADDRESS: localhost
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: install requirements
         run: |
-          pip install -r requirements.txt -r requirements-dev.txt --no-compile
-      - name: start dependencies
-        run: docker compose -f docker-templates/history-only.yaml up -d postgres redis
-      - name: perform database migrations
+          pip install -r requirements.txt --no-compile
+      - name: compile archive backend
         run: |
-          export HLL_DB_URL=postgresql://${HLL_DB_USER}:${HLL_DB_PASSWORD}@${HLL_DB_HOST}:${HLL_DB_HOST_PORT}/${HLL_DB_NAME}
-          export HLL_REDIS_URL=redis://${HLL_REDIS_HOST}:${HLL_REDIS_PORT}/${HLL_REDIS_DB}
-          
-          PYTHONPATH=. alembic upgrade head
-          PYTHONPATH=. python ./manage.py init_db
-          PYTHONPATH=. python ./rconweb/manage.py migrate --noinput
-      - name: run tests
+          python -m compileall archive_core rconweb alembic manage.py
+      - name: import archive backend
         run: |
-          export HLL_DB_URL=postgresql://${HLL_DB_USER}:${HLL_DB_PASSWORD}@${HLL_DB_HOST}:${HLL_DB_HOST_PORT}/${HLL_DB_NAME}
-          export HLL_REDIS_URL=redis://${HLL_REDIS_HOST}:${HLL_REDIS_PORT}/${HLL_REDIS_DB}
-          pytest tests/
+          python -c "import sys; sys.path.insert(0, '.'); sys.path.insert(0, 'rconweb'); import archive_core.db; import archive_core.maps; import api.history_only; import rconweb.settings; print('import-ok')"

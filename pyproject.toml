@@ -1,6 +1,6 @@
 [tool.isort]
 profile = "black"
-src_paths = ["rcon", "rconweb", "tests"]
+src_paths = ["archive_core", "rconweb"]
 
 [tool.black]
 target-version = ['py311']

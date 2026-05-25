@@ -1,23 +1,7 @@
 networks:
-  common:
   public:
 
 services:
-  redis:
-    image: ${REDIS_IMAGE}
-    command: redis-server /usr/local/etc/redis/redis.conf
-    restart: always
-    healthcheck:
-      test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
-      interval: 15s
-      timeout: 30s
-      retries: 5
-    volumes:
-      - ./redis_data:/data
-      - ./config:/usr/local/etc/redis
-    networks:
-      - common
-
   postgres:
     image: ${POSTGRES_IMAGE}
     command: postgres -c max_connections=300
@@ -38,7 +22,7 @@ services:
     volumes:
       - ./db_data:/data
     networks:
-      - common
+      - public
 
   maintenance:
     build:
@@ -53,7 +37,6 @@ services:
       HLL_DB_HOST: ${HLL_DB_HOST}
       HLL_DB_HOST_PORT: ${HLL_DB_HOST_PORT}
       HLL_DB_URL: postgresql://${HLL_DB_USER}:${HLL_DB_PASSWORD}@${HLL_DB_HOST}:${HLL_DB_HOST_PORT}/${HLL_DB_NAME}
-      HLL_REDIS_URL: redis://${HLL_REDIS_HOST}:${HLL_REDIS_HOST_PORT}/${HLL_REDIS_DB}
     command: maintenance
     restart: always
     healthcheck:
@@ -65,12 +48,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
     volumes:
       - ./logs:/logs/
     networks:
-      - common
+      - public
 
   backend:
     build:
@@ -82,24 +63,18 @@ services:
       LOGGING_LEVEL: "INFO"
       LOGGING_PATH: /logs/
       CONFIG_DIR: /config/
-      HLL_REDIS_HOST: ${HLL_REDIS_HOST}
-      HLL_REDIS_PORT: ${HLL_REDIS_HOST_PORT}
-      HLL_REDIS_URL: redis://${HLL_REDIS_HOST}:${HLL_REDIS_HOST_PORT}/${HLL_REDIS_DB}
       HLL_DB_USER: ${HLL_DB_USER}
       HLL_DB_PASSWORD: ${HLL_DB_PASSWORD}
       HLL_DB_NAME: ${HLL_DB_NAME}
       HLL_DB_HOST: ${HLL_DB_HOST}
       HLL_DB_HOST_PORT: ${HLL_DB_HOST_PORT}
       HLL_DB_URL: postgresql://${HLL_DB_USER}:${HLL_DB_PASSWORD}@${HLL_DB_HOST}:${HLL_DB_HOST_PORT}/${HLL_DB_NAME}
-      HLL_REDIS_DB: ${HLL_REDIS_DB}
       SERVER_NUMBER: ${SERVER_NUMBER}
       PUBLIC_STATS_PORT: ${PUBLIC_STATS_PORT}
       PUBLIC_STATS_PORT_HTTPS: ${PUBLIC_STATS_PORT_HTTPS}
       RCONWEB_API_SECRET: ${RCONWEB_API_SECRET}
       NB_API_WORKERS: ${NB_API_WORKERS}
       NB_API_THREADS: ${NB_API_THREADS}
-      RCONWEB_EXTERNAL_ADDRESS: ${RCONWEB_EXTERNAL_ADDRESS}
-      DONT_SEED_ADMIN_USER: ${DONT_SEED_ADMIN_USER}
       SESSION_COOKIE_DOMAIN: ${SESSION_COOKIE_DOMAIN}
       CSRF_COOKIE_DOMAIN: ${CSRF_COOKIE_DOMAIN}
       SENTRY_DSN: ${SENTRY_DSN}
@@ -118,17 +93,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
       maintenance:
         condition: service_healthy
     volumes:
       - ./logs:/logs/
-      - ./servicediscovery:/servicediscovery
       - ./static:/static/
       - ./config:/config/
     networks:
-      - common
       - public
 
   frontend:
@@ -142,8 +113,8 @@ services:
       RCONWEB_EXTERNAL_ADDRESS: ${RCONWEB_EXTERNAL_ADDRESS}
     restart: always
     ports:
-      - ${PUBLIC_STATS_PORT}:81
-      - ${PUBLIC_STATS_PORT_HTTPS}:444
+      - 127.0.0.1:${PUBLIC_STATS_PORT}:81
+      - 127.0.0.1:${PUBLIC_STATS_PORT_HTTPS}:444
     depends_on:
       backend:
         condition: service_healthy

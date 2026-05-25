@@ -14,32 +14,8 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-import os
-
-from django.contrib import admin
 from django.urls import include, path
 
-from api.browse_logsdir import list_logs
-
-
-def is_history_only() -> bool:
-    return os.getenv("HISTORY_ONLY", "").strip().lower() in {"1", "true", "yes", "on"}
-
-if (
-    not os.getenv("HLL_MAINTENANCE_CONTAINER")
-    and not os.getenv("HLL_WH_SERVICE_CONTAINER")
-):
-    if is_history_only():
-        urlpatterns = [
-            path("api/", include("api.urls")),
-        ]
-    else:
-        urlpatterns = [
-            path("admin/", admin.site.urls),
-            path("accounts/", include("django.contrib.auth.urls")),
-            path("api/", include("api.urls")),
-            path("api/logs/", list_logs),
-            path("api/logs/<path:path>", list_logs),
-        ]
-else:
-    urlpatterns = []
+urlpatterns = [
+    path("api/", include("api.urls")),
+]

@@ -21,7 +21,7 @@ from sentry_sdk import configure_scope
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 
-from rcon.user_config.rcon_server_settings import RconServerSettingsUserConfig
+from archive_core.config import get_site_name
 
 try:
     TAG_VERSION = (
@@ -36,11 +36,12 @@ HLL_MAINTENANCE_CONTAINER = os.getenv("HLL_MAINTENANCE_CONTAINER")
 HLL_WH_SERVICE_CONTAINER = os.getenv("HLL_WH_SERVICE_CONTAINER")
 
 
+def is_history_only() -> bool:
+    return os.getenv("HISTORY_ONLY", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 try:
-    config = RconServerSettingsUserConfig.load_from_db()
-    ENVIRONMENT = re.sub("[^0-9a-zA-Z]+", "", (config.short_name or "default").strip())[
-        :64
-    ]
+    ENVIRONMENT = re.sub("[^0-9a-zA-Z]+", "", get_site_name()[0].strip())[:64]
 except Exception:
     ENVIRONMENT = "undefined"
 
@@ -109,22 +110,6 @@ with configure_scope() as scope:
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Needed for WS broadcasting functionality
-# See https://channels.readthedocs.io/en/stable/topics/channel_layers.html
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [
-                {
-                    "address": os.getenv("HLL_REDIS_URL"),
-                }
-            ],
-        },
-    },
-}
-
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
@@ -165,13 +150,12 @@ CSRF_COOKIE_DOMAIN = os.getenv("CSRF_COOKIE_DOMAIN") or None
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS.copy()
 
 if not HLL_MAINTENANCE_CONTAINER and not HLL_WH_SERVICE_CONTAINER:
-    from rcon.user_config.rcon_server_settings import RconServerSettingsUserConfig
-
-    rcon_config = RconServerSettingsUserConfig.load_from_db()
-    if host := rcon_config.server_url:
-        host = str(host)
-        # Django doesn't like the trailing / in a URL
-        if host[-1] == "/":
+    host = os.getenv("RCONWEB_EXTERNAL_ADDRESS") or os.getenv("SERVER_URL")
+    if host:
+        host = str(host).strip()
+        if host and not host.startswith("http://") and not host.startswith("https://"):
+            host = f"http://{host}"
+        if host.endswith("/"):
             CSRF_TRUSTED_ORIGINS.append(host[:-1])
         else:
             CSRF_TRUSTED_ORIGINS.append(host)
@@ -185,12 +169,6 @@ if DEBUG:
     SESSION_COOKIE_SAMESITE = "None"
 
 INSTALLED_APPS = [
-    "daphne",
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
     "django.contrib.staticfiles",
     "corsheaders",
     "api",
@@ -198,12 +176,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -218,15 +192,12 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
 WSGI_APPLICATION = "rconweb.wsgi.application"
-ASGI_APPLICATION = "rconweb.asgi.application"
 
 
 # Database
@@ -253,25 +224,6 @@ DATABASES = {
         }
     }
 }
-
-# Password validation
-# https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
-
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
-]
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/

@@ -1,6 +1,6 @@
 from enum import Enum
 
-from rcon.maps import Team
+from .maps import TEAM_ALLIES, TEAM_AXIS
 
 
 class WeaponType(Enum):
@@ -66,7 +66,6 @@ SOVIET_WEAPONS = {
 }
 
 BRITISH_WEAPONS = {
-    # renamed to Sten Gun Mk.II
     'Sten Gun': WeaponType.Infantry,
     'Sten Gun Mk.II': WeaponType.Infantry,
     'Sten Gun Mk.V': WeaponType.Infantry,
@@ -74,9 +73,7 @@ BRITISH_WEAPONS = {
     'M1928A1 THOMPSON': WeaponType.Infantry,
     'SMLE No.1 Mk III': WeaponType.Infantry,
     'Lee-Enfield Pattern 1914': WeaponType.Infantry,
-    # deprecated (not in the game anymore)
     'Lee–Enfield Jungle Carbine': WeaponType.Infantry,
-    # renamed to Rifle No.4 Mk I
     'Lee–Enfield No.4 Mk I': WeaponType.Infantry,
     'Rifle No.4 Mk I': WeaponType.Infantry,
     'Rifle No.5 Mk I': WeaponType.Infantry,
@@ -191,7 +188,6 @@ US_WEAPONS = {
     'HULL M1919 [M4A3 (105mm)]': WeaponType.Armor,
 }
 
-# Preliminary based on experimental branch
 CA_WEAPONS = {
     'Rifle No.4 Mk I': WeaponType.Infantry,
     'Lanchester': WeaponType.Infantry,
@@ -295,12 +291,12 @@ NO_SIDE_WEAPONS = [
 
 WEAPON_SIDE_MAP = {}
 
-for w in [*US_WEAPONS.keys(), *SOVIET_WEAPONS.keys(), *BRITISH_WEAPONS.keys()]:
-    if w in NO_SIDE_WEAPONS:
+for weapon in [*US_WEAPONS.keys(), *SOVIET_WEAPONS.keys(), *BRITISH_WEAPONS.keys(), *CA_WEAPONS.keys()]:
+    if weapon in NO_SIDE_WEAPONS:
         continue
-    WEAPON_SIDE_MAP[w] = Team.ALLIES
+    WEAPON_SIDE_MAP[weapon] = TEAM_ALLIES
 
-for w in AXIS_WEAPONS.keys():
-    if w in NO_SIDE_WEAPONS:
+for weapon in AXIS_WEAPONS.keys():
+    if weapon in NO_SIDE_WEAPONS:
         continue
-    WEAPON_SIDE_MAP[w] = Team.AXIS
+    WEAPON_SIDE_MAP[weapon] = TEAM_AXIS

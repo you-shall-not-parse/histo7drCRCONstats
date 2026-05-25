@@ -3,10 +3,9 @@ import os
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from rcon.maps import parse_layer
-from rcon.models import Maps, enter_session
-from rcon.user_config.rcon_server_settings import RconServerSettingsUserConfig
-from rcon.utils import get_server_number
+from archive_core.config import get_server_number, get_site_name
+from archive_core.db import Maps, enter_session
+from archive_core.maps import parse_layer
 from rconweb.settings import TAG_VERSION
 
 from .decorators import require_http_methods
@@ -51,8 +50,9 @@ def _get_latest_map(server_number: int | str | None):
 @csrf_exempt
 @require_http_methods(["GET"])
 def get_public_info(request):
-    config = RconServerSettingsUserConfig.load_from_db()
-    latest_map = _get_latest_map(get_server_number())
+    server_number = get_server_number()
+    short_name, display_name = get_site_name(server_number)
+    latest_map = _get_latest_map(server_number)
     latest_layer = parse_layer(latest_map.map_name) if latest_map else None
     latest_start = latest_map.start.timestamp() if latest_map else None
     latest_result = latest_map.result if latest_map and latest_map.result else {}
@@ -74,8 +74,8 @@ def get_public_info(request):
             "time_remaining": 0,
             "vote_status": [],
             "name": {
-                "name": config.short_name or f"CRCON Archive {get_server_number()}",
-                "short_name": config.short_name,
+                "name": display_name,
+                "short_name": short_name,
                 "public_stats_port": int(public_stats_port) if public_stats_port else None,
                 "public_stats_port_https": int(public_stats_port_https) if public_stats_port_https else None,
             },

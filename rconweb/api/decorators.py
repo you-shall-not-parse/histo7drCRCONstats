@@ -1,9 +1,6 @@
 import logging
 from functools import wraps
 
-from django.contrib.auth.decorators import (
-    permission_required as django_permission_required,
-)
 from django.views.decorators.http import (
     require_http_methods as django_require_http_methods,
 )
@@ -12,29 +9,6 @@ logger = logging.getLogger("rconweb")
 
 ENDPOINT_HTTP_METHODS: dict[str, list[str]] = {}
 ENDPOINT_PERMISSIONS_LOOKUP = {}
-
-
-def permission_required(
-    perm: str | list[str] | set[str], login_url=None, raise_exception=False
-):
-    def decorator(
-        func,
-    ):
-        if isinstance(perm, str):
-            ENDPOINT_PERMISSIONS_LOOKUP[func.__name__] = [perm]
-        else:
-            ENDPOINT_PERMISSIONS_LOOKUP[func.__name__] = perm
-
-        @wraps(func)
-        @django_permission_required(
-            perm, login_url=login_url, raise_exception=raise_exception
-        )
-        def inner(*args, **kwargs):
-            return func(*args, **kwargs)
-
-        return inner
-
-    return decorator
 
 
 def require_http_methods(request_method_list: list[str]):

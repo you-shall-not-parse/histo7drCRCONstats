@@ -76,10 +76,6 @@ export const routerObjects: RouteObject[] = [
         element: <Navigate to="/games" replace />,
       },
       {
-        path: '/streaming',
-        element: <Navigate to="/games" replace />,
-      },
-      {
         path: '/games',
         element: <GamesLayout />,
         errorElement: <ErrorPage />,

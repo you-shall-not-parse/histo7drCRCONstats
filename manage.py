@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import logging
 import os
+import sys
 
 
 class ConfigurationError(Exception):
@@ -17,10 +17,6 @@ def _get_missing_env(keys, env):
 
 def pre_flight_checks(env):
     required = [
-        "HLL_HOST",
-        "HLL_PORT",
-        "HLL_PASSWORD",
-        "HLL_REDIS_URL",
         "HLL_DB_URL",
     ]
     optionnal = ["LOGGING_PATH", "LOGGING_LEVEL"]
@@ -36,21 +32,19 @@ def pre_flight_checks(env):
 
 if __name__ == "__main__":
     env = os.environ
-    logger = logging.getLogger("rcon")
     try:
-        # pre_flight_checks(env)
-        from rcon.cli import cli, init
+        pre_flight_checks(env)
+        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "rconweb.settings")
+        rconweb_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "rconweb")
+        if rconweb_path not in sys.path:
+            sys.path.insert(0, rconweb_path)
 
-        init()
-        cli()
-    except SystemExit as e:
-        logger.info("Program requested exit %s", repr(e))
-        exit(e.args[0])
+        from django.core.management import execute_from_command_line
+
+        execute_from_command_line(sys.argv)
     except ConfigurationError as e:
         print(repr(e))
-        logger.error("MISSING Configuration: %s", e.args)
         exit(1)
     except Exception as e:
         print(repr(e))
-        logger.exception("Unexpected error.")
         exit(1)
