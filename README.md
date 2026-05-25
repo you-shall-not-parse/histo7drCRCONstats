@@ -12,25 +12,25 @@ This workspace has been slimmed for an archive-only deployment where CRCON serve
 - The history-only deployment no longer starts websocket/channels services, does not seed a Django admin user, and only serves the public historical API over gunicorn.
 - The active archive runtime now uses the archive-only `archive_core` package instead of importing the old `rcon` package.
 - The legacy live-server `rcon` package, supervisor jobs, and related test suite are no longer part of the archive deployment path.
-- The default reverse-proxy target is `7drstats.hllfrontline.com`, with the frontend bound to `127.0.0.1` so Caddy can front it safely.
+- The default reverse-proxy target is `7drhistostats.hllfrontline.com`, with the frontend bound to `127.0.0.1` so Caddy can front it safely.
 - The remaining frontend surface is the historical match site only; the old live current-game and streamer views are no longer part of this repo.
 
 ## Caddy Subdomain
 
-To serve the archive on `7drstats.hllfrontline.com`, point your reverse proxy at the frontend port from [default.env](default.env).
+To serve the archive on `7drhistostats.hllfrontline.com`, point your reverse proxy at the frontend port from [default.env](default.env).
 
 Example Caddy block:
 
 ```caddyfile
-www.7drstats.hllfrontline.com {
-	redir https://7drstats.hllfrontline.com{uri} permanent
+www.7drhistostats.hllfrontline.com {
+	redir https://7drhistostats.hllfrontline.com{uri} permanent
 }
 
-7drstats.hllfrontline.com {
+7drhistostats.hllfrontline.com {
 	encode zstd gzip
 
 	log {
-		output file /var/log/caddy/7drstats.access.log {
+		output file /var/log/caddy/7drhistostats.access.log {
 			roll_size 10MiB
 			roll_keep 10
 			roll_keep_for 720h
