@@ -7,7 +7,7 @@ from typing import Any
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, create_engine
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, foreign, mapped_column, relationship
 from sqlalchemy.pool import NullPool
 
 from .maps import TEAM_ALLIES, TEAM_AXIS
@@ -105,15 +105,20 @@ def _detect_team(kills_by_weapon: dict[str, int] | None, deaths_by_weapon: dict[
 class PlayerID(Base):
     __tablename__ = "steam_id_64"
 
-    player_id: Mapped[str] = mapped_column(String, primary_key=True)
-    steaminfo: Mapped["SteamInfo | None"] = relationship(back_populates="player", uselist=False)
+    id: Mapped[int] = mapped_column(Integer)
+    player_id: Mapped[str] = mapped_column("steam_id_64", String, primary_key=True)
+    steaminfo: Mapped["SteamInfo | None"] = relationship(
+        back_populates="player",
+        uselist=False,
+        primaryjoin=lambda: PlayerID.id == foreign(SteamInfo.playersteamid_id),
+    )
 
 
 class SteamInfo(Base):
     __tablename__ = "steam_info"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    steam_id_64: Mapped[str] = mapped_column(ForeignKey("steam_id_64.player_id"), unique=True)
+    playersteamid_id: Mapped[int] = mapped_column(ForeignKey("steam_id_64.id"), unique=True)
     created: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     updated: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     profile: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
@@ -121,7 +126,10 @@ class SteamInfo(Base):
     bans: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     has_bans: Mapped[bool] = mapped_column(default=False)
 
-    player: Mapped[PlayerID] = relationship(back_populates="steaminfo")
+    player: Mapped[PlayerID] = relationship(
+        back_populates="steaminfo",
+        primaryjoin=lambda: foreign(SteamInfo.playersteamid_id) == PlayerID.id,
+    )
 
     def to_dict(self) -> dict[str, Any]:
         return {
