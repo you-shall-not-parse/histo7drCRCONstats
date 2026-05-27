@@ -124,7 +124,6 @@ class SteamInfo(Base):
     profile: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     country: Mapped[str | None] = mapped_column(String, nullable=True)
     bans: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
-    has_bans: Mapped[bool] = mapped_column(default=False)
 
     player: Mapped[PlayerID] = relationship(
         back_populates="steaminfo",
@@ -139,7 +138,7 @@ class SteamInfo(Base):
             "profile": self.profile,
             "country": self.country,
             "bans": self.bans,
-            "has_bans": self.has_bans,
+            "has_bans": bool(self.bans),
         }
 
 
@@ -183,12 +182,10 @@ class PlayerStats(Base):
     map_id: Mapped[int] = mapped_column(ForeignKey("map_history.id"))
     map: Mapped[Maps] = relationship(back_populates="player_stats")
 
-    player_name: Mapped[str] = mapped_column("player", String)
+    player_name: Mapped[str | None] = mapped_column("name", String, nullable=True)
     kills: Mapped[int] = mapped_column(Integer, default=0)
     kills_streak: Mapped[int] = mapped_column(Integer, default=0)
-    kills_by_type: Mapped[dict[str, int]] = mapped_column(JSONB, default=dict)
     deaths: Mapped[int] = mapped_column(Integer, default=0)
-    deaths_by_type: Mapped[dict[str, int]] = mapped_column(JSONB, default=dict)
     deaths_without_kill_streak: Mapped[int] = mapped_column(Integer, default=0)
     teamkills: Mapped[int] = mapped_column(Integer, default=0)
     teamkills_streak: Mapped[int] = mapped_column(Integer, default=0)
