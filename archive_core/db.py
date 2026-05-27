@@ -105,8 +105,8 @@ def _detect_team(kills_by_weapon: dict[str, int] | None, deaths_by_weapon: dict[
 class PlayerID(Base):
     __tablename__ = "steam_id_64"
 
-    id: Mapped[int] = mapped_column(Integer)
-    player_id: Mapped[str] = mapped_column("steam_id_64", String, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    player_id: Mapped[str] = mapped_column("steam_id_64", String, unique=True)
     steaminfo: Mapped["SteamInfo | None"] = relationship(
         back_populates="player",
         uselist=False,
@@ -178,7 +178,7 @@ class PlayerStats(Base):
     __tablename__ = "player_stats"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    player_id: Mapped[str] = mapped_column(ForeignKey("steam_id_64.player_id"))
+    player_id: Mapped[str] = mapped_column(ForeignKey("steam_id_64.steam_id_64"))
     player: Mapped[PlayerID] = relationship(lazy="joined")
     map_id: Mapped[int] = mapped_column(ForeignKey("map_history.id"))
     map: Mapped[Maps] = relationship(back_populates="player_stats")
