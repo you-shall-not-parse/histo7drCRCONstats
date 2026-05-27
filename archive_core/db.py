@@ -50,7 +50,7 @@ def get_engine(force_reinit: bool = False):
 
 @contextmanager
 def enter_session() -> Session:
-    session = Session(get_engine())
+    session = Session(get_engine(), expire_on_commit=False)
     try:
         yield session
         session.commit()
