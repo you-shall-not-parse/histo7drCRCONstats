@@ -110,6 +110,7 @@ class PlayerID(Base):
     steaminfo: Mapped["SteamInfo | None"] = relationship(
         back_populates="player",
         uselist=False,
+        lazy="joined",
         primaryjoin=lambda: PlayerID.id == foreign(SteamInfo.playersteamid_id),
     )
 
