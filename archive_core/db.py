@@ -178,7 +178,7 @@ class PlayerStats(Base):
     __tablename__ = "player_stats"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    player_id: Mapped[str] = mapped_column(ForeignKey("steam_id_64.steam_id_64"))
+    playersteamid_id: Mapped[int] = mapped_column(ForeignKey("steam_id_64.id"))
     player: Mapped[PlayerID] = relationship(lazy="joined")
     map_id: Mapped[int] = mapped_column(ForeignKey("map_history.id"))
     map: Mapped[Maps] = relationship(back_populates="player_stats")
@@ -214,10 +214,11 @@ class PlayerStats(Base):
     level: Mapped[int] = mapped_column(Integer, default=0)
 
     def to_dict(self) -> dict[str, Any]:
+        player_id = self.player.player_id if self.player else None
         return {
             "id": self.id,
-            "player_id": self.player_id,
-            "steam_id_64": self.player_id,
+            "player_id": player_id,
+            "steam_id_64": player_id,
             "player": self.player_name,
             "steaminfo": self.player.steaminfo.to_dict() if self.player and self.player.steaminfo else None,
             "map_id": self.map_id,
