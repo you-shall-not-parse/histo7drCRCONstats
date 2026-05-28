@@ -8,73 +8,71 @@ import { Button } from "@/components/ui/button";
 
 const nColSize = 40
 
-export const columns: ColumnDef<Faceoff>[] = [
-  {
-    accessorKey: 'name',
-    header: function NameHeader() {
-      const { t } = useTranslation('game')
-      return t('playersTable.player')
+export const useFaceoffColumns = (): ColumnDef<Faceoff>[] => {
+  const { t } = useTranslation('game')
+
+  return [
+    {
+      accessorKey: 'name',
+      header: () => t('playersTable.player'),
+      cell: (info) => {
+        const { focusPlayerByName } = useGameStatsContext();
+        return <Button
+          variant="text"
+          className="pl-0 h-0"
+          onClick={() => {
+            focusPlayerByName(info.row.original.name)
+          }}
+        >
+          {String(info.getValue())}
+        </Button>
+      },
     },
-    cell: (info) => {
-      const { focusPlayerByName } = useGameStatsContext();
-      return <Button
-        variant="text"
-        className="pl-0 h-0"
-        onClick={() => {
-          focusPlayerByName(info.row.original.name)
-        }}
-      >
-        {String(info.getValue())}
-      </Button>
+    {
+      accessorKey: 'kills',
+      header: function KillsHeader({ column }) {
+        return (
+          <Header
+            header="K"
+            desc={t('playersTable.kills')}
+            onClick={() => column.toggleSorting(column.getIsSorted() !== 'desc')}
+          />
+        )
+      },
+      cell: (info) => <div className="text-center px-1">{String(info.getValue())}</div>,
+      size: nColSize,
     },
-  },
-  {
-    accessorKey: 'kills',
-    header: function KillsHeader({ column }) {
-      const { t } = useTranslation('game')
-      return (
-        <Header
-          header="K"
-          desc={t('playersTable.kills')}
-          onClick={() => column.toggleSorting(column.getIsSorted() !== 'desc')}
-        />
-      )
+    {
+      accessorKey: 'deaths',
+      header: function DeathsHeader({ column }) {
+        return (
+          <Header
+            header="D"
+            desc={t('playersTable.deaths')}
+            onClick={() => column.toggleSorting(column.getIsSorted() !== 'desc')}
+          />
+        )
+      },
+      cell: (info) => <div className="text-center px-1">{String(info.getValue())}</div>,
+      size: nColSize,
     },
-    cell: (info) => <div className="text-center px-1">{String(info.getValue())}</div>,
-    size: nColSize,
-  },
-  {
-    accessorKey: 'deaths',
-    header: function DeathsHeader({ column }) {
-      const { t } = useTranslation('game')
-      return (
-        <Header
-          header="D"
-          desc={t('playersTable.deaths')}
-          onClick={() => column.toggleSorting(column.getIsSorted() !== 'desc')}
-        />
-      )
+    {
+      accessorKey: 'diff',
+      header: function DiffHeader({ column }) {
+        return (
+          <Header
+            header="+/-"
+            desc={t('playersTable.diff')}
+            onClick={() => column.toggleSorting(column.getIsSorted() !== 'desc')}
+          />
+        )
+      },
+      cell: (info) => {
+        const diff = Number(info.getValue())
+        const textColor = diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-600' : ''
+        return <div className={clsx(textColor, 'text-center px-1')}>{diff}</div>
+      },
+      size: nColSize,
     },
-    cell: (info) => <div className="text-center px-1">{String(info.getValue())}</div>,
-    size: nColSize,
-  },
-  {
-    accessorKey: 'diff',
-    header: function DiffHeader({ column }) {
-      const { t } = useTranslation('game')
-      return (
-        <Header
-          header="+/-"
-          desc={t('playersTable.diff')}
-          onClick={() => column.toggleSorting(column.getIsSorted() !== 'desc')}
-        />
-      )
-    },
-    cell: (info) => {
-      const diff = Number(info.getValue())
-      const textColor = diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-600' : ''
-      return <div className={clsx(textColor, 'text-center px-1')}>{diff}</div>
-    },
-    size: nColSize,
-  },
-]
+  ]
+}

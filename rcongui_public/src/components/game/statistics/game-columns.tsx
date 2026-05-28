@@ -15,6 +15,7 @@ import {ColumnCategory} from "@/lib/tables";
 import {Awards} from "@/components/game/statistics/award";
 import {PlayerBaseWithAwards} from "@/pages/games/[id]";
 import { Level } from './level'
+import { TFunction } from 'i18next'
 
 const threeDigitsWidth = 40
 const fourDigitsWidth = 50
@@ -35,11 +36,9 @@ function SortableHeader({ column, desc }: { column: Column<Player>; desc: string
   )
 }
 
-function pointColumns(completed: boolean): ColumnDef<Player | PlayerWithStatus>[] {
-  const { t } = useTranslation('game');
-
+function pointColumns(t: TFunction, completed: boolean): ColumnDef<Player | PlayerWithStatus>[] {
   return [
-    ...completed ? [killCategoryColumn()] : [],
+    ...(completed ? [killCategoryColumn(t)] : []),
     {
       id: 'kills',
       meta: { label: t('playersTable.kills'), category: ColumnCategory.GENERAL },
@@ -103,7 +102,7 @@ function pointColumns(completed: boolean): ColumnDef<Player | PlayerWithStatus>[
         )
       },
     },
-    ...completed ? [deathCategoryColumn()] : [],
+    ...(completed ? [deathCategoryColumn(t)] : []),
     {
       id: 'kills_per_minute',
       meta: { label: t('playersTable.killsPerMinute'), category: ColumnCategory.ADVANCED},
@@ -276,7 +275,7 @@ function pointColumns(completed: boolean): ColumnDef<Player | PlayerWithStatus>[
         )
       },
     },
-  ];
+  ]
 }
 
 const playerColumn = (handlePlayerClick: (id: string) => void): ColumnDef<Player | PlayerWithStatus> => ({
@@ -326,8 +325,7 @@ const playerColumn = (handlePlayerClick: (id: string) => void): ColumnDef<Player
   enableHiding: false,
 })
 
-const awardColumn = (): ColumnDef<Player | PlayerBaseWithAwards | PlayerWithStatus>  => {
-  const { t } = useTranslation('game');
+const awardColumn = (t: TFunction): ColumnDef<Player | PlayerBaseWithAwards | PlayerWithStatus>  => {
   return {
     id: 'award',
     meta: {label: t('playersTable.awards'), category: ColumnCategory.GENERAL},
@@ -342,9 +340,7 @@ const awardColumn = (): ColumnDef<Player | PlayerBaseWithAwards | PlayerWithStat
   }
 };
 
-const teamColumn = (): ColumnDef<Player | PlayerWithStatus> => {
-  const { t } = useTranslation('game');
-
+const teamColumn = (t: TFunction): ColumnDef<Player | PlayerWithStatus> => {
   return {
     id: 'team',
     meta: { label: t('playersTable.team'), category: ColumnCategory.GENERAL },
@@ -367,12 +363,10 @@ const teamColumn = (): ColumnDef<Player | PlayerWithStatus> => {
         <TeamIndicator team={getTeamFromAssociation(player.team)}/>
       </div>;
     },
-  };
+  }
 }
 
-const killCategoryColumn = (): ColumnDef<Player | PlayerWithStatus> => {
-  const { t } = useTranslation('game');
-
+const killCategoryColumn = (t: TFunction): ColumnDef<Player | PlayerWithStatus> => {
   return {
     id: 'kills_by_category',
     meta: { label: t('playersTable.killsByCategory'), category: ColumnCategory.GENERAL },
@@ -389,9 +383,7 @@ const killCategoryColumn = (): ColumnDef<Player | PlayerWithStatus> => {
   }
 };
 
-const deathCategoryColumn = (): ColumnDef<Player | PlayerWithStatus> => {
-  const { t } = useTranslation('game');
-
+const deathCategoryColumn = (t: TFunction): ColumnDef<Player | PlayerWithStatus> => {
   return {
     id: 'deaths_by_category',
     meta: { label: t('playersTable.deathsByCategory'), category: ColumnCategory.GENERAL },
@@ -430,9 +422,7 @@ const statusColumn: ColumnDef<Player | PlayerWithStatus> = {
   enableHiding: false,
 }
 
-const levelColumn = (): ColumnDef<Player | PlayerWithStatus> => {
-  const { t } = useTranslation('game')
-
+const levelColumn = (t: TFunction): ColumnDef<Player | PlayerWithStatus> => {
   return {
     id: 'level',
     accessorKey: 'level',
@@ -449,13 +439,27 @@ const levelColumn = (): ColumnDef<Player | PlayerWithStatus> => {
   }
 }
 
-export const getLiveGameColumns = (handlePlayerClick: (id: string) => void): ColumnDef<Player | PlayerWithStatus>[] => [
-  statusColumn,
-  levelColumn(),
-  playerColumn(handlePlayerClick),
-  ...pointColumns(false),
-]
+export const useLiveGameColumns = (handlePlayerClick: (id: string) => void): ColumnDef<Player | PlayerWithStatus>[] => {
+  const { t } = useTranslation('game')
 
-export const getCompletedGameColumns = (
+  return [
+    statusColumn,
+    levelColumn(t),
+    playerColumn(handlePlayerClick),
+    ...pointColumns(t, false),
+  ]
+}
+
+export const useCompletedGameColumns = (
   handlePlayerClick: (id: string) => void,
-): ColumnDef<Player | PlayerWithStatus | PlayerBaseWithAwards>[] => [teamColumn(), levelColumn(), playerColumn(handlePlayerClick), awardColumn(), ...pointColumns(true)]
+): ColumnDef<Player | PlayerWithStatus | PlayerBaseWithAwards>[] => {
+  const { t } = useTranslation('game')
+
+  return [
+    teamColumn(t),
+    levelColumn(t),
+    playerColumn(handlePlayerClick),
+    awardColumn(t),
+    ...pointColumns(t, true),
+  ]
+}

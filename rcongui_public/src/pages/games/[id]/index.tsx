@@ -1,5 +1,5 @@
 import dayjs from 'dayjs'
-import { getCompletedGameColumns } from "@/components/game/statistics/game-columns";
+import { useCompletedGameColumns } from "@/components/game/statistics/game-columns";
 import { ScoreboardMapStats } from '@/types/api'
 import { useOutletContext } from 'react-router'
 import GameStatsContainer from '@/components/game/statistics/game-stats-container'
@@ -15,6 +15,26 @@ interface Award {
 
 export type PlayerBaseWithAwards = Player & { awards: Award[] }
 
+function GameDetailTable({
+  game,
+  data,
+  handlePlayerClick,
+}: {
+  game: ScoreboardMapStats
+  data: PlayerBaseWithAwards[]
+  handlePlayerClick: (id: string) => void
+}) {
+  const columns = useCompletedGameColumns(handlePlayerClick)
+
+  return (
+    <DataTable
+      columns={columns}
+      data={data}
+      tableId={`${game.id}_${dayjs(game.start).format('YYYYMMDD-HHmm')}`}
+    />
+  )
+}
+
 export default function GameDetail() {
   const { game } = useOutletContext<{ game: ScoreboardMapStats }>()
 
@@ -26,10 +46,10 @@ export default function GameDetail() {
       player_stats: game.player_stats,
     }}>
       {(props) => (
-        <DataTable
-          columns={getCompletedGameColumns(props.handlePlayerClick)}
+        <GameDetailTable
+          game={game}
           data={playersWithAwards}
-          tableId={`${game.id}_${dayjs(game.start).format('YYYYMMDD-HHmm')}`}
+          handlePlayerClick={props.handlePlayerClick}
         />
       )}
     </GameStatsContainer>

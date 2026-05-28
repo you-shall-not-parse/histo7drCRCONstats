@@ -9,8 +9,8 @@ import { Gamepad2Icon } from 'lucide-react'
 import { SimpleTable } from '@/components/game/statistics/simple-table'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { IconStatistic } from '../icon'
-import { columns as faceoffColumns } from '../faceoff-columns'
-import { deathByColumns, killByColumns } from '../weapons-columns'
+import { useFaceoffColumns } from '../faceoff-columns'
+import { useDeathByColumns, useKillByColumns } from '../weapons-columns'
 import { mergeKillsDeaths } from '../utils'
 import { useTranslation } from 'react-i18next'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
@@ -24,6 +24,10 @@ export default function PlayerGameDetail({
   isMobile?: boolean
 }) {
   const { t } = useTranslation('game')
+  const faceoffColumns = useFaceoffColumns()
+  const killByColumns = useKillByColumns()
+  const deathByColumns = useDeathByColumns()
+
   const killsBy = player
     ? Object.entries(player.weapons).map((entry) => ({
         name: entry[0],
