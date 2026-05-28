@@ -107,6 +107,12 @@ class PlayerID(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     player_id: Mapped[str] = mapped_column("steam_id_64", String, unique=True)
+    soldier: Mapped["PlayerSoldier | None"] = relationship(
+        back_populates="player",
+        uselist=False,
+        lazy="selectin",
+        primaryjoin=lambda: PlayerID.id == foreign(PlayerSoldier.playersteamid_id),
+    )
     names: Mapped[list["PlayerName"]] = relationship(
         back_populates="player",
         lazy="selectin",
@@ -160,6 +166,23 @@ class PlayerName(Base):
     player: Mapped[PlayerID] = relationship(
         back_populates="names",
         primaryjoin=lambda: foreign(PlayerName.playersteamid_id) == PlayerID.id,
+    )
+
+
+class PlayerSoldier(Base):
+    __tablename__ = "player_soldier"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    playersteamid_id: Mapped[int] = mapped_column(ForeignKey("steam_id_64.id"), unique=True)
+    name: Mapped[str | None] = mapped_column(String, nullable=True)
+    level: Mapped[int] = mapped_column(Integer, default=0)
+    platform: Mapped[str | None] = mapped_column(String, nullable=True)
+    clan_tag: Mapped[str | None] = mapped_column(String, nullable=True)
+    updated: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    player: Mapped[PlayerID] = relationship(
+        back_populates="soldier",
+        primaryjoin=lambda: foreign(PlayerSoldier.playersteamid_id) == PlayerID.id,
     )
 
 

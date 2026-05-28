@@ -2,12 +2,14 @@ import os
 import re
 from collections import Counter
 from datetime import datetime
+from functools import lru_cache
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from sqlalchemy import inspect
 
 from archive_core.config import get_server_number, get_site_name
-from archive_core.db import Maps, enter_session
+from archive_core.db import Maps, enter_session, get_engine
 from archive_core.maps import parse_layer
 from rconweb.settings import TAG_VERSION
 
@@ -100,12 +102,36 @@ def _historical_name_sort_key(player_name_record):
     return player_name_record.last_seen or player_name_record.created or datetime.min
 
 
+@lru_cache(maxsize=1)
+def _has_player_soldier_table():
+    try:
+        return inspect(get_engine()).has_table("player_soldier")
+    except Exception:
+        return False
+
+
+def _normalize_clan_tag_value(value):
+    if not value:
+        return None
+
+    normalized = value.strip().upper()
+    if not normalized or not any(character.isalpha() for character in normalized):
+        return None
+    return normalized
+
+
 def _extract_player_clan_tag(player_stat, match_start=None):
+    player = getattr(player_stat, "player", None)
+    if _has_player_soldier_table() and player is not None:
+        soldier = getattr(player, "soldier", None)
+        direct_soldier_tag = _normalize_clan_tag_value(getattr(soldier, "clan_tag", None))
+        if direct_soldier_tag:
+            return direct_soldier_tag
+
     direct_tag = _extract_clan_tag(getattr(player_stat, "player_name", None))
     if direct_tag:
         return direct_tag
 
-    player = getattr(player_stat, "player", None)
     player_names = getattr(player, "names", None) or []
     if not player_names:
         return None
