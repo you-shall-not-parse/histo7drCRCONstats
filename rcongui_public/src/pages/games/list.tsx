@@ -1,7 +1,7 @@
 'use client'
 
 import dayjs from 'dayjs'
-import { columns } from './columns'
+import { useGameColumns } from './columns'
 import { DataTable as MatchTable } from './table'
 import MatchPagination from './pagination'
 import { ScoreboardMap, ScoreboardMaps } from '@/types/api'
@@ -33,6 +33,7 @@ export default function GamesList({
   page: number
   pageSize: number
 }) {
+  const columns = useGameColumns()
   const totalGames = games.total
   const maxPages = Math.ceil(totalGames / pageSize)
 
