@@ -10,13 +10,13 @@ const nColSize = 40
 
 export const useFaceoffColumns = (): ColumnDef<Faceoff>[] => {
   const { t } = useTranslation('game')
+  const { focusPlayerByName } = useGameStatsContext()
 
   return [
     {
       accessorKey: 'name',
       header: () => t('playersTable.player'),
       cell: (info) => {
-        const { focusPlayerByName } = useGameStatsContext();
         return <Button
           variant="text"
           className="pl-0 h-0"

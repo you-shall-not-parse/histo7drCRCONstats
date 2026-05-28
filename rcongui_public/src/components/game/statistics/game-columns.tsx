@@ -45,7 +45,6 @@ function pointColumns(t: TFunction, completed: boolean): ColumnDef<Player | Play
       accessorKey: 'kills',
       size: threeDigitsWidth,
       header: function KillsHeader({ column }) {
-        const { t } = useTranslation('game')
         return (
           <Header
             src={'/icons/roles/infantry.png'}
@@ -64,7 +63,6 @@ function pointColumns(t: TFunction, completed: boolean): ColumnDef<Player | Play
       accessorKey: 'kill_death_ratio',
       size: fourDigitsWidth,
       header: function KDHeader({ column }) {
-        const { t } = useTranslation('game')
         return (
           <Header
             icon={<ScaleIcon/>}
@@ -89,7 +87,6 @@ function pointColumns(t: TFunction, completed: boolean): ColumnDef<Player | Play
       accessorKey: 'deaths',
       size: fourDigitsWidth,
       header: function DeathsHeader({ column }) {
-        const { t } = useTranslation('game')
         return (
           <Header
             src={'/icons/roles/medic.png'}
@@ -108,7 +105,6 @@ function pointColumns(t: TFunction, completed: boolean): ColumnDef<Player | Play
       meta: { label: t('playersTable.killsPerMinute'), category: ColumnCategory.ADVANCED},
       accessorKey: 'kills_per_minute',
       header: function KpmHeader({ column }) {
-        const { t } = useTranslation('game')
         return <SortableHeader column={column} desc={t('playersTable.killsPerMinute')} />
       },
       size: 20,
@@ -118,7 +114,6 @@ function pointColumns(t: TFunction, completed: boolean): ColumnDef<Player | Play
       meta: { label: t('playersTable.deathsPerMinute'), category: ColumnCategory.ADVANCED },
       accessorKey: 'deaths_per_minute',
       header: function KpmHeader({ column }) {
-        const { t } = useTranslation('game')
         return <SortableHeader column={column} desc={t('playersTable.deathsPerMinute')} />
       },
       size: 20,
@@ -128,7 +123,6 @@ function pointColumns(t: TFunction, completed: boolean): ColumnDef<Player | Play
       meta: { label: t('score.killstreak'), category: ColumnCategory.ADVANCED },
       accessorKey: 'kills_streak',
       header: function KillStreakHeader({ column }) {
-        const { t } = useTranslation('game')
         return (
           <Header
             icon={<ZapIcon/>}
@@ -147,7 +141,6 @@ function pointColumns(t: TFunction, completed: boolean): ColumnDef<Player | Play
       meta: { label: t('score.deathstreak'), category: ColumnCategory.ADVANCED },
       accessorKey: 'deaths_without_kill_streak',
       header: function DeathStreakHeader({ column }) {
-        const { t } = useTranslation('game')
         return (
           <Header
             icon={<SkullIcon/>}
@@ -166,7 +159,6 @@ function pointColumns(t: TFunction, completed: boolean): ColumnDef<Player | Play
       meta: { label: t('score.teamkills'), category: ColumnCategory.ADVANCED },
       accessorKey: 'teamkills',
       header: function TeamkillsHeader({ column }) {
-        const { t } = useTranslation('game')
         return (
           <Header
             icon={<HeartOffIcon/>}
@@ -185,7 +177,6 @@ function pointColumns(t: TFunction, completed: boolean): ColumnDef<Player | Play
       meta: { label: t('score.deathsByTeam'), category: ColumnCategory.ADVANCED },
       accessorKey: 'deaths_by_tk',
       header: function DeathsByTkHeader({ column }) {
-        const { t } = useTranslation('game')
         return (
           <Header
             icon={<HeartCrackIcon/>}
@@ -205,7 +196,6 @@ function pointColumns(t: TFunction, completed: boolean): ColumnDef<Player | Play
       accessorKey: 'combat',
       size: fourDigitsWidth,
       header: function CombatHeader({ column }) {
-        const { t } = useTranslation('game')
         return (
           <Header
             src={'/icons/roles/score_combat.png'}
@@ -224,7 +214,6 @@ function pointColumns(t: TFunction, completed: boolean): ColumnDef<Player | Play
       accessorKey: 'offense',
       size: fourDigitsWidth,
       header: function OffenseHeader({ column }) {
-        const { t } = useTranslation('game')
         return (
           <Header
             src={'/icons/roles/score_offensive.png'}
@@ -243,7 +232,6 @@ function pointColumns(t: TFunction, completed: boolean): ColumnDef<Player | Play
       accessorKey: 'defense',
       size: fourDigitsWidth,
       header: function DefenseHeader({ column }) {
-        const { t } = useTranslation('game')
         return (
           <Header
             src={'/icons/roles/score_defensive.png'}
@@ -262,7 +250,6 @@ function pointColumns(t: TFunction, completed: boolean): ColumnDef<Player | Play
       accessorKey: 'support',
       size: fourDigitsWidth,
       header: function SupportHeader({ column }) {
-        const { t } = useTranslation('game')
         return (
           <Header
             src={'/icons/roles/score_support.png'}
@@ -278,11 +265,10 @@ function pointColumns(t: TFunction, completed: boolean): ColumnDef<Player | Play
   ]
 }
 
-const playerColumn = (handlePlayerClick: (id: string) => void): ColumnDef<Player | PlayerWithStatus> => ({
+const playerColumn = (t: TFunction, handlePlayerClick: (id: string) => void): ColumnDef<Player | PlayerWithStatus> => ({
   id: 'player',
   accessorKey: 'player',
   header: function NameHeader({ column }) {
-    const { t } = useTranslation('game')
     return (
       <div className="text-left">
         <Button
@@ -330,7 +316,6 @@ const awardColumn = (t: TFunction): ColumnDef<Player | PlayerBaseWithAwards | Pl
     id: 'award',
     meta: {label: t('playersTable.awards'), category: ColumnCategory.GENERAL},
     header: function NameHeader() {
-      const {t} = useTranslation('game')
       return <div className="text-right">{t('playersTable.awards')}</div>
     },
     cell: ({row}) => {
@@ -346,7 +331,6 @@ const teamColumn = (t: TFunction): ColumnDef<Player | PlayerWithStatus> => {
     meta: { label: t('playersTable.team'), category: ColumnCategory.GENERAL },
     accessorKey: 'team',
     header: function TeamHeader() {
-      const {t} = useTranslation('game')
       return <div className={"text-center"}>{t('playersTable.team')}</div>
     },
     size: 20,
@@ -372,7 +356,6 @@ const killCategoryColumn = (t: TFunction): ColumnDef<Player | PlayerWithStatus> 
     meta: { label: t('playersTable.killsByCategory'), category: ColumnCategory.GENERAL },
     accessorKey: 'kills_by_category',
     header: function KillCategoryHeader() {
-      const {t} = useTranslation('game')
       return <div>{t('playersTable.killsByCategory')}</div>
     },
     size: 125,
@@ -389,7 +372,6 @@ const deathCategoryColumn = (t: TFunction): ColumnDef<Player | PlayerWithStatus>
     meta: { label: t('playersTable.deathsByCategory'), category: ColumnCategory.GENERAL },
     accessorKey: 'deaths_by_category',
     header: function DeathCategoryHeader() {
-      const {t} = useTranslation('game')
       return <div>{t('playersTable.deathsByCategory')}</div>
     },
     size: 125,
@@ -400,11 +382,10 @@ const deathCategoryColumn = (t: TFunction): ColumnDef<Player | PlayerWithStatus>
   }
 };
 
-const statusColumn: ColumnDef<Player | PlayerWithStatus> = {
+const statusColumn = (t: TFunction): ColumnDef<Player | PlayerWithStatus> => ({
   id: 'is_online',
   accessorKey: 'is_online',
   header: function StatusHeader() {
-    const { t } = useTranslation('game')
     return <div className="sr-only w-4">{t('playersTable.status')}</div>
   },
   size: 20,
@@ -420,7 +401,7 @@ const statusColumn: ColumnDef<Player | PlayerWithStatus> = {
     return isPlayerWithStatus(player) ? <Status player={player} className="block" /> : null
   },
   enableHiding: false,
-}
+})
 
 const levelColumn = (t: TFunction): ColumnDef<Player | PlayerWithStatus> => {
   return {
@@ -429,7 +410,6 @@ const levelColumn = (t: TFunction): ColumnDef<Player | PlayerWithStatus> => {
     meta: { label: t('playersTable.level'), category: ColumnCategory.GENERAL },
     size: threeDigitsWidth,
     header: function LevelHeader() {
-      const { t } = useTranslation('game')
       return <div>{t('playersTable.level')}</div>
     },
     cell: ({ row }) => {
@@ -443,9 +423,9 @@ export const useLiveGameColumns = (handlePlayerClick: (id: string) => void): Col
   const { t } = useTranslation('game')
 
   return [
-    statusColumn,
+    statusColumn(t),
     levelColumn(t),
-    playerColumn(handlePlayerClick),
+    playerColumn(t, handlePlayerClick),
     ...pointColumns(t, false),
   ]
 }
@@ -458,7 +438,7 @@ export const useCompletedGameColumns = (
   return [
     teamColumn(t),
     levelColumn(t),
-    playerColumn(handlePlayerClick),
+    playerColumn(t, handlePlayerClick),
     awardColumn(t),
     ...pointColumns(t, true),
   ]

@@ -15,6 +15,23 @@ import { Badge } from '@/components/ui/badge'
 
 dayjs.extend(LocalizedFormat)
 
+function fallbackMapImage(event: React.SyntheticEvent<HTMLImageElement>, fallbackBasePath: string) {
+  const image = event.currentTarget
+  const fallbackStep = image.dataset.fallbackStep ?? '0'
+  const mapId = image.dataset.mapId ?? 'unknown'
+
+  if (fallbackStep === '0') {
+    image.dataset.fallbackStep = '1'
+    image.src = `${fallbackBasePath}/${mapId}-day.webp`
+    return
+  }
+
+  if (fallbackStep === '1') {
+    image.dataset.fallbackStep = '2'
+    image.src = `${fallbackBasePath}/unknown-day.webp`
+  }
+}
+
 export function useGameColumns(): ColumnDef<ScoreboardMap>[] {
   const { t } = useTranslation('game')
   const { t: translationT } = useTranslation('translation')
@@ -45,7 +62,15 @@ export function useGameColumns(): ColumnDef<ScoreboardMap>[] {
 
         return (
           <div className="flex flex-row items-center gap-2 w-max">
-            <img src={'/maps/icons/' + gameMap.image_name} width={size} height={size * ratio} alt=""/>
+            <img
+              src={'/maps/icons/' + gameMap.image_name}
+              width={size}
+              height={size * ratio}
+              alt=""
+              data-map-id={gameMap.map.id}
+              data-fallback-step="0"
+              onError={(event) => fallbackMapImage(event, '/maps/icons')}
+            />
             <span>{gameMap.map.pretty_name}</span>
           </div>
         )

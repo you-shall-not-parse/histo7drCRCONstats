@@ -19,6 +19,10 @@ RE_LEGACY_LAYER_NAME = re.compile(
     r"^(?P<name>[A-Za-z0-9]+?)(?:_(?:(?P<offensive>offensive)(?P<attackers>us|ger|rus|gb|cw|can)?|(?P<game_mode>warfare|skirmish|phased|majority))(?P<environment>_night|_dusk|_dawn|_rain|_overcast)?)?$",
     re.IGNORECASE,
 )
+RE_READABLE_LAYER_NAME = re.compile(
+    r"^(?P<name>.+?)\s+(?P<game_mode>Warfare|Offensive|Skirmish|Phased|Majority|Control)(?:\s+(?P<version>V\d+))?(?:\s+(?P<environment>Day|Night|Dawn|Dusk|Rain|Overcast|Morning))?$",
+    re.IGNORECASE,
+)
 
 MAPS: dict[str, dict[str, Any]] = {
     "unknown": {
@@ -213,6 +217,14 @@ MAPS: dict[str, dict[str, Any]] = {
 }
 
 TAG_TO_MAP_ID = {value["tag"].lower(): key for key, value in MAPS.items()}
+MAP_NAME_ALIASES = {
+    "phll1944": "purpleheartlane",
+    "hurtgenforestv2": "hurtgenforest",
+}
+
+
+def _normalize_map_lookup_key(value: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", value.lower())
 
 
 def _normalize_environment(value: str | None) -> str:
@@ -241,6 +253,14 @@ def _map_from_name(name: str) -> dict[str, Any]:
         return MAPS[lowered]
     if lowered in TAG_TO_MAP_ID:
         return MAPS[TAG_TO_MAP_ID[lowered]]
+
+    normalized_key = _normalize_map_lookup_key(name)
+    if normalized_key in MAPS:
+        return MAPS[normalized_key]
+    if normalized_key in TAG_TO_MAP_ID:
+        return MAPS[TAG_TO_MAP_ID[normalized_key]]
+    if normalized_key in MAP_NAME_ALIASES:
+        return MAPS[MAP_NAME_ALIASES[normalized_key]]
 
     return {
         "id": lowered,
@@ -300,6 +320,14 @@ def parse_layer(layer_name: str | dict[str, Any]) -> dict[str, Any]:
 
         environment = _normalize_environment(layer_data.get("environment"))
         return _build_layer(layer_name, map_data, game_mode, attackers, environment)
+
+    readable_match = RE_READABLE_LAYER_NAME.match(layer_name)
+    if readable_match:
+        layer_data = readable_match.groupdict()
+        map_data = _map_from_name(layer_data["name"])
+        game_mode = (layer_data.get("game_mode") or "warfare").lower()
+        environment = _normalize_environment(layer_data.get("environment"))
+        return _build_layer(layer_name, map_data, game_mode, None, environment)
 
     map_data = _map_from_name(layer_name)
     return _build_layer(layer_name, map_data, "warfare", None, ENV_DAY)

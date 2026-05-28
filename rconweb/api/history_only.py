@@ -70,8 +70,10 @@ def _extract_clan_tag(player_name):
     if not player_name:
         return None
 
+    stripped_name = player_name.strip()
+
     for pattern in CLAN_TAG_PATTERNS:
-        match = pattern.match(player_name.strip())
+        match = pattern.match(stripped_name)
         if not match:
             continue
 
@@ -79,6 +81,16 @@ def _extract_clan_tag(player_name):
         if not any(character.isalpha() for character in tag):
             return None
         return tag
+
+    first_token = stripped_name.split()[0].strip("[](){}<>|/_-.:,")
+    if 2 <= len(first_token) <= 8:
+        normalized_token = first_token.upper()
+        if any(character.isalpha() for character in normalized_token) and (
+            any(character.isdigit() for character in normalized_token)
+            or normalized_token == first_token
+            or normalized_token == stripped_name[: len(first_token)].upper()
+        ):
+            return normalized_token
 
     return None
 
