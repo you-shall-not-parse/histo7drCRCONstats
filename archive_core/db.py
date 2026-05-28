@@ -107,6 +107,11 @@ class PlayerID(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     player_id: Mapped[str] = mapped_column("steam_id_64", String, unique=True)
+    names: Mapped[list["PlayerName"]] = relationship(
+        back_populates="player",
+        lazy="selectin",
+        primaryjoin=lambda: PlayerID.id == foreign(PlayerName.playersteamid_id),
+    )
     steaminfo: Mapped["SteamInfo | None"] = relationship(
         back_populates="player",
         uselist=False,
@@ -141,6 +146,21 @@ class SteamInfo(Base):
             "bans": self.bans,
             "has_bans": bool(self.bans),
         }
+
+
+class PlayerName(Base):
+    __tablename__ = "player_names"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    playersteamid_id: Mapped[int] = mapped_column(ForeignKey("steam_id_64.id"))
+    name: Mapped[str] = mapped_column(String)
+    created: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_seen: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    player: Mapped[PlayerID] = relationship(
+        back_populates="names",
+        primaryjoin=lambda: foreign(PlayerName.playersteamid_id) == PlayerID.id,
+    )
 
 
 class Maps(Base):

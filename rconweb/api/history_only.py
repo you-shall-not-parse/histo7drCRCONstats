@@ -1,6 +1,7 @@
 import os
 import re
 from collections import Counter
+from datetime import datetime
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -95,10 +96,44 @@ def _extract_clan_tag(player_name):
     return None
 
 
-def _build_clan_match(player_stats):
+def _historical_name_sort_key(player_name_record):
+    return player_name_record.last_seen or player_name_record.created or datetime.min
+
+
+def _extract_player_clan_tag(player_stat, match_start=None):
+    direct_tag = _extract_clan_tag(getattr(player_stat, "player_name", None))
+    if direct_tag:
+        return direct_tag
+
+    player = getattr(player_stat, "player", None)
+    player_names = getattr(player, "names", None) or []
+    if not player_names:
+        return None
+
+    candidate_names = sorted(player_names, key=_historical_name_sort_key, reverse=True)
+    if match_start is not None:
+        dated_candidates = []
+        undated_candidates = []
+        for candidate in candidate_names:
+            candidate_time = candidate.last_seen or candidate.created
+            if candidate_time is None:
+                undated_candidates.append(candidate)
+            elif candidate_time <= match_start:
+                dated_candidates.append(candidate)
+        candidate_names = dated_candidates or undated_candidates or candidate_names
+
+    for candidate in candidate_names:
+        tag = _extract_clan_tag(candidate.name)
+        if tag:
+            return tag
+
+    return None
+
+
+def _build_clan_match(player_stats, match_start=None):
     tag_counts = Counter()
     for player_stat in player_stats:
-        tag = _extract_clan_tag(getattr(player_stat, "player_name", None))
+        tag = _extract_player_clan_tag(player_stat, match_start)
         if tag:
             tag_counts[tag] += 1
 
@@ -197,7 +232,7 @@ def get_scoreboard_maps(request):
                     "player_stats": payload["player_stats"],
                     "result": _normalize_result(payload["result"]),
                     "game_layout": payload["game_layout"],
-                    "clan_match": _build_clan_match(row.player_stats),
+                    "clan_match": _build_clan_match(row.player_stats, row.start),
                 }
             )
 
@@ -235,7 +270,7 @@ def get_map_scoreboard(request):
         payload = game.to_dict(with_stats=True)
         payload["map"] = parse_layer(payload["map_name"])
         payload["result"] = _normalize_result(payload.get("result"))
-        payload["clan_match"] = _build_clan_match(game.player_stats)
+        payload["clan_match"] = _build_clan_match(game.player_stats, game.start)
         return api_response(
             result=payload,
             arguments=data,
