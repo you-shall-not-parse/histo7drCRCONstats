@@ -1,4 +1,6 @@
 import os
+import re
+from collections import Counter
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -9,6 +11,15 @@ from archive_core.maps import parse_layer
 from rconweb.settings import TAG_VERSION
 
 from .decorators import require_http_methods
+
+
+CLAN_TAG_MIN_PLAYERS = 30
+CLAN_TAG_PATTERNS = (
+    re.compile(r"^\[(?P<tag>[A-Za-z0-9]{2,8})\]\s*"),
+    re.compile(r"^\((?P<tag>[A-Za-z0-9]{2,8})\)\s*"),
+    re.compile(r"^(?P<tag>[A-Za-z0-9]{2,8})\s*[|/_-]\s*"),
+    re.compile(r"^(?P<tag>[A-Z0-9]{2,8})\s+"),
+)
 
 
 def api_response(*, result=None, command: str, failed: bool, error=None, arguments=None, status_code=200):
@@ -52,6 +63,42 @@ def _normalize_result(result):
     return {
         "allied": allied,
         "axis": axis,
+    }
+
+
+def _extract_clan_tag(player_name):
+    if not player_name:
+        return None
+
+    for pattern in CLAN_TAG_PATTERNS:
+        match = pattern.match(player_name.strip())
+        if not match:
+            continue
+
+        tag = match.group("tag").upper()
+        if not any(character.isalpha() for character in tag):
+            return None
+        return tag
+
+    return None
+
+
+def _build_clan_match(player_stats):
+    tag_counts = Counter()
+    for player_stat in player_stats:
+        tag = _extract_clan_tag(getattr(player_stat, "player_name", None))
+        if tag:
+            tag_counts[tag] += 1
+
+    clans = [
+        {"tag": tag, "count": count}
+        for tag, count in tag_counts.most_common()
+        if count >= CLAN_TAG_MIN_PLAYERS
+    ]
+
+    return {
+        "detected": len(clans) >= 2,
+        "clans": clans,
     }
 
 
@@ -124,22 +171,23 @@ def get_scoreboard_maps(request):
         total = query.count()
         rows = query.limit(page_size).offset((page - 1) * page_size).all()
 
-    maps = []
-    for row in rows:
-        payload = row.to_dict()
-        maps.append(
-            {
-                "map": parse_layer(payload["map_name"]),
-                "id": payload["id"],
-                "creation_time": payload["creation_time"],
-                "start": payload["start"],
-                "end": payload["end"],
-                "server_number": payload["server_number"],
-                "player_stats": payload["player_stats"],
-                "result": _normalize_result(payload["result"]),
-                "game_layout": payload["game_layout"],
-            }
-        )
+        maps = []
+        for row in rows:
+            payload = row.to_dict()
+            maps.append(
+                {
+                    "map": parse_layer(payload["map_name"]),
+                    "id": payload["id"],
+                    "creation_time": payload["creation_time"],
+                    "start": payload["start"],
+                    "end": payload["end"],
+                    "server_number": payload["server_number"],
+                    "player_stats": payload["player_stats"],
+                    "result": _normalize_result(payload["result"]),
+                    "game_layout": payload["game_layout"],
+                    "clan_match": _build_clan_match(row.player_stats),
+                }
+            )
 
     return api_response(
         result={
@@ -175,6 +223,7 @@ def get_map_scoreboard(request):
         payload = game.to_dict(with_stats=True)
         payload["map"] = parse_layer(payload["map_name"])
         payload["result"] = _normalize_result(payload.get("result"))
+        payload["clan_match"] = _build_clan_match(game.player_stats)
         return api_response(
             result=payload,
             arguments=data,

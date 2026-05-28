@@ -11,6 +11,7 @@ import {MapLayer} from '@/types/mapLayer'
 import {useTranslation} from 'react-i18next'
 import {dayjsLocal} from "@/lib/utils";
 import WeatherIcon from "@/components/game/weather-icon";
+import { Badge } from '@/components/ui/badge'
 
 dayjs.extend(LocalizedFormat)
 
@@ -91,6 +92,28 @@ export const columns: ColumnDef<ScoreboardMap>[] = [
     },
     id: 'result',
     accessorFn: (row) => `${row.result?.allied ?? '?'} - ${row.result?.axis ?? '?'}`,
+  },
+  {
+    header: 'Clans',
+    id: 'clan_match',
+    accessorKey: 'clan_match',
+    cell: ({ row }) => {
+      const clans = row.original.clan_match?.clans ?? []
+
+      if (clans.length === 0) {
+        return <span className="text-muted-foreground">-</span>
+      }
+
+      return (
+        <div className="flex flex-wrap gap-1 max-w-48">
+          {clans.map((clan) => (
+            <Badge key={clan.tag} variant={row.original.clan_match.detected ? 'default' : 'secondary'}>
+              {clan.tag} {clan.count}
+            </Badge>
+          ))}
+        </div>
+      )
+    },
   },
   {
     header: function WeekdayHeader() {

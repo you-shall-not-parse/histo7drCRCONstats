@@ -5,6 +5,14 @@ type UNIX_Timestamp = number
 type ISO_8601_Timestamp = string
 type TIME_SECONDS = number
 
+export type ClanMatch = {
+  detected: boolean
+  clans: Array<{
+    tag: string
+    count: number
+  }>
+}
+
 export type ScoreboardMap = {
   id: number
   creation_time: string
@@ -19,6 +27,7 @@ export type ScoreboardMap = {
     requested?: string[],
     set?: string[],
   },
+  clan_match: ClanMatch
   player_stats: [],
   server_number: number
 }
