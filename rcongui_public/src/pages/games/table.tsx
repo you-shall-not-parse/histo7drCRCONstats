@@ -33,13 +33,13 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
 
   return (
     <div className="border w-full">
-      <Table>
+      <Table className="min-w-[52rem] text-xs sm:min-w-full sm:text-sm">
         <TableHeader className="h-12">
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
                 return (
-                  <TableHead key={header.id}>
+                  <TableHead key={header.id} style={{ width: `${header.getSize()}px` }}>
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 )
@@ -50,9 +50,9 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
         <TableBody>
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="text-sm h-10">
+              <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="h-10">
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="py-0">
+                  <TableCell key={cell.id} className="py-0" style={{ width: `${cell.column.getSize()}px` }}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}

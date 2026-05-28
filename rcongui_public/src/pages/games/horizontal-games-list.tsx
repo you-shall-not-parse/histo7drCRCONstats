@@ -8,6 +8,7 @@ import dayjs, {Dayjs} from "dayjs";
 import {cn, dayjsLocal} from "@/lib/utils";
 import {useTranslation} from "react-i18next";
 import {useLocale} from "@/i18n/locale-provider";
+import { getMapImageName } from '@/lib/map-images';
 
 export const HorizontalGamesList = ({ games }: { games: ScoreboardMaps }) => {
   const { pathname } = useLocation()
@@ -121,8 +122,8 @@ export const HorizontalGamesList = ({ games }: { games: ScoreboardMaps }) => {
               <GameCard
                 game={card}
                 pathname={pathname}
-                onMouseEnter={React.useCallback(() => setHoverGameDate(card.start), [card])}
-                onMouseLeave={React.useCallback(() => setHoverGameDate(null), [])}
+                onMouseEnter={() => setHoverGameDate(card.start)}
+                onMouseLeave={() => setHoverGameDate(null)}
               />
             </div>
             :
@@ -163,7 +164,7 @@ const GameCard = React.memo(
         <div className="px-0.5">
           <MapFigure
             text={`${dayjsLocal(game.start).format("LT")} (${dayjs(game.end).diff(dayjs(game.start), 'minutes')} ${t('time.minuteShort')})`}
-            src={`/maps/${game.map.image_name}`}
+            src={`/maps/${getMapImageName(game.map)}`}
             name={`${game.map.map.pretty_name} (${game.result?.allied ?? '?'}:${game.result?.axis ?? '?'})`}
             className={cn(
               "group h-20 w-64",

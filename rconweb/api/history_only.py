@@ -16,7 +16,7 @@ from rconweb.settings import TAG_VERSION
 from .decorators import require_http_methods
 
 
-CLAN_TAG_MIN_PLAYERS = 30
+CLAN_TAG_MIN_PLAYERS = 10
 CLAN_TAG_PATTERNS = (
     re.compile(r"^\[(?P<tag>[A-Za-z0-9]{2,8})\]\s*"),
     re.compile(r"^\((?P<tag>[A-Za-z0-9]{2,8})\)\s*"),

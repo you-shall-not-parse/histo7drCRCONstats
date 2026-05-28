@@ -10,8 +10,8 @@ import {ScoreboardMap} from '@/types/api'
 import {MapLayer} from '@/types/mapLayer'
 import {useTranslation} from 'react-i18next'
 import {dayjsLocal} from "@/lib/utils";
-import WeatherIcon from "@/components/game/weather-icon";
 import { Badge } from '@/components/ui/badge'
+import { getMapImageName } from '@/lib/map-images'
 
 dayjs.extend(LocalizedFormat)
 
@@ -55,6 +55,7 @@ export function useGameColumns(): ColumnDef<ScoreboardMap>[] {
       header: t('matchTable.map'),
       id: 'map',
       accessorKey: 'map',
+      size: 220,
       cell: function MapCell({ cell }) {
         const gameMap = cell.getValue() as MapLayer
         const size = 60
@@ -63,7 +64,7 @@ export function useGameColumns(): ColumnDef<ScoreboardMap>[] {
         return (
           <div className="flex flex-row items-center gap-2 w-max">
             <img
-              src={'/maps/icons/' + gameMap.image_name}
+              src={'/maps/icons/' + getMapImageName(gameMap)}
               width={size}
               height={size * ratio}
               alt=""
@@ -77,43 +78,16 @@ export function useGameColumns(): ColumnDef<ScoreboardMap>[] {
       },
     },
     {
-      header: t('matchTable.weather'),
-      id: 'weather',
-      accessorKey: 'map',
-      cell: function MapCell({ cell }) {
-        const gameMap = cell.getValue() as MapLayer
-
-        return (
-          <WeatherIcon environment={gameMap.environment} className="text-muted-foreground"/>
-        )
-      },
-    },
-    {
-      header: t('matchTable.mode'),
-      id: 'mode',
-      accessorKey: 'map',
-      cell: function MapCell({cell}) {
-        const gameMap = cell.getValue() as MapLayer
-
-        return (
-          <div>
-            <span>{gameMap.game_mode[0].toUpperCase() + gameMap.game_mode.slice(1)}</span>
-            {gameMap.attackers &&
-              <span> ({gameMap.map[gameMap.attackers].name.toUpperCase()})</span>
-            }
-          </div>
-        )
-      },
-    },
-    {
       header: t('matchTable.result'),
       id: 'result',
+      size: 72,
       accessorFn: (row) => `${row.result?.allied ?? '?'} - ${row.result?.axis ?? '?'}`,
     },
     {
       header: 'Clans',
       id: 'clan_match',
       accessorKey: 'clan_match',
+      size: 220,
       cell: ({ row }) => {
         const clans = row.original.clan_match?.clans ?? []
 
@@ -122,7 +96,7 @@ export function useGameColumns(): ColumnDef<ScoreboardMap>[] {
         }
 
         return (
-          <div className="flex flex-wrap gap-1 max-w-48">
+          <div className="flex min-w-[12rem] flex-wrap gap-1">
             {clans.map((clan) => (
               <Badge key={clan.tag} variant={row.original.clan_match.detected ? 'default' : 'secondary'}>
                 {clan.tag} {clan.count}
@@ -136,6 +110,7 @@ export function useGameColumns(): ColumnDef<ScoreboardMap>[] {
       header: translationT('time.weekday'),
       id: 'weekday',
       accessorKey: 'start',
+      size: 72,
       cell: ({ cell }) => {
         const globalLocaleData = dayjs.localeData();
         return globalLocaleData.weekdaysShort()[dayjsLocal(cell.getValue() as string).day()];
@@ -145,12 +120,14 @@ export function useGameColumns(): ColumnDef<ScoreboardMap>[] {
       header: t('matchTable.start'),
       id: 'start',
       accessorKey: 'start',
+      size: 132,
       cell: ({ cell }) => dayjsLocal(cell.getValue() as string).format('L LT'),
     },
     {
       header: t('matchTable.duration'),
       id: 'duration',
       accessorKey: 'duration',
+      size: 88,
       cell: ({ row }) => getGameDuration(row.original.start, row.original.end),
     },
   ]

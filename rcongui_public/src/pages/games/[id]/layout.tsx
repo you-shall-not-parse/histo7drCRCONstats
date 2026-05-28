@@ -14,6 +14,7 @@ import {ScoreboardMapStats} from '@/types/api'
 import {ChartLineIcon, TableIcon} from "lucide-react";
 import {ToggleGroup, ToggleGroupItem} from "@/components/ui/toggle-group";
 import {dayjsLocal} from "@/lib/utils";
+import { getMapImageName } from '@/lib/map-images';
 
 dayjs.extend(localizedFormat)
 
@@ -58,7 +59,7 @@ const GameDetailLayout = ({ game }: { game: ScoreboardMapStats }) => {
           <aside className="flex flex-row w-full lg:w-1/3 divide-x">
             <MapFigure
               text={dayjsLocal(game.start).format('LLL')}
-              src={`/maps/${game.map.image_name}`}
+              src={`/maps/${getMapImageName(game.map)}`}
               name={game.map.map.pretty_name}
               gameLayout={game.game_layout}
               className="w-full h-32 lg:h-full"
