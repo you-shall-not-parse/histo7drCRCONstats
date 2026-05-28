@@ -34,6 +34,27 @@ def _get_data(request):
     return parsed_get
 
 
+def _normalize_result(result):
+    if not result:
+        return None
+
+    allied = result.get("allied")
+    axis = result.get("axis")
+
+    if allied is None:
+        allied = result.get("Allied")
+    if axis is None:
+        axis = result.get("Axis")
+
+    if allied is None and axis is None:
+        return None
+
+    return {
+        "allied": allied,
+        "axis": axis,
+    }
+
+
 def _get_latest_map(server_number: int | str | None):
     with enter_session() as sess:
         query = sess.query(Maps).order_by(Maps.start.desc())
@@ -55,7 +76,7 @@ def get_public_info(request):
     latest_map = _get_latest_map(server_number)
     latest_layer = parse_layer(latest_map.map_name) if latest_map else None
     latest_start = latest_map.start.timestamp() if latest_map else None
-    latest_result = latest_map.result if latest_map and latest_map.result else {}
+    latest_result = _normalize_result(latest_map.result) or {}
 
     public_stats_port = os.getenv("PUBLIC_STATS_PORT", None)
     public_stats_port_https = os.getenv("PUBLIC_STATS_PORT_HTTPS", None)
@@ -68,8 +89,8 @@ def get_public_info(request):
             "max_player_count": 0,
             "player_count_by_team": {"allied": 0, "axis": 0},
             "score": {
-                "allied": latest_result.get("Allied", 0),
-                "axis": latest_result.get("Axis", 0),
+                "allied": latest_result.get("allied", 0),
+                "axis": latest_result.get("axis", 0),
             },
             "time_remaining": 0,
             "vote_status": [],
@@ -115,7 +136,7 @@ def get_scoreboard_maps(request):
                 "end": payload["end"],
                 "server_number": payload["server_number"],
                 "player_stats": payload["player_stats"],
-                "result": payload["result"],
+                "result": _normalize_result(payload["result"]),
                 "game_layout": payload["game_layout"],
             }
         )
@@ -153,6 +174,7 @@ def get_map_scoreboard(request):
 
         payload = game.to_dict(with_stats=True)
         payload["map"] = parse_layer(payload["map_name"])
+        payload["result"] = _normalize_result(payload.get("result"))
         return api_response(
             result=payload,
             arguments=data,
